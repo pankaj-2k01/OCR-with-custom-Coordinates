@@ -1,10 +1,9 @@
-from xml.dom.expatbuilder import theDOMImplementation
+from cgitb import text
 import cv2
-import pytesseract
+from pytesseract import *
 import numpy as np
 import seaborn as sns
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 class OCR:
   def __init__(self,image_path,x,y,w,h) :
@@ -34,15 +33,9 @@ class OCR:
     self.show_valueimage("Erroded Image",erroded_image)
     diluted_image=self.dilution(erroded_image)
     self.show_valueimage("Dilated Image",diluted_image)
-    # canny=self.canny(erroded_image)
-    # self.show_valueimage("canny",canny)
-
-    # threshold_img=cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-    # threshold_img=cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            # cv2.THRESH_BINARY,11,2)
     
     return diluted_image
-  
+    
   def histogram_equalization(self,img):
     equ = cv2.equalizeHist(img)
     return equ
@@ -51,11 +44,24 @@ class OCR:
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
   def blur(self,img):
-    return cv2.GaussianBlur(img,(5,5),0)
+    # return cv2.GaussianBlur(img,(5,5),0)
+    return img
 
   def thresholding(self,img):
     return cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
-    
+  
+  def InvOTSUthresholding(self,img):
+    return cv2.threshold(img,0,255,cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+  
+  def distancetransform(self,img):
+    img=cv2.distanceTransform(img,cv2.DIST_L2,5)
+    img=(img*255).astype("uint8")
+    return self.InvOTSUthresholding(img)
+  
+  def MorphologicalEx(self,img):
+    kernel=cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(7,7))
+    return cv2.morphologyEx(img,cv2.MORPH_OPEN,kernel)
+  
   def erossion(self,img):
     kernel = np.ones((5,5),np.uint8)
     return cv2.erode(img, kernel, iterations=1)
@@ -92,9 +98,8 @@ class OCR:
     cropped = img2[self.y:self.y + self.h, self.x:self.x + self.w]
     return cropped
 
-  def get_text(self,cropped_img):
-    
-    text = pytesseract.image_to_string(cropped_img)
+  def get_text(self,img):
+    text = pytesseract.image_to_string(img)
     return text
   
   def print_text(self,text):
@@ -102,13 +107,15 @@ class OCR:
 
 if __name__=="__main__":
   # ocr=OCR("./images/test4.png",25,30,300,130)
-  # ocr=OCR("./images/fiber2.png",350,550,300,150)
+  ocr=OCR("./images/fiber2.png",350,550,300,150)
   
   img=ocr.read_image() 
   cropped_image=ocr.cropped_img(img)
   preprocess=ocr.preprocess_img(cropped_image)
   textualdata=ocr.get_text(preprocess)
   ocr.print_text(textualdata)
+
+
 
 # ocr=OCR("./images/fiber3.png",250,350,250,75) 
 # ocr=OCR("./images/test6.png",0,0,134,137)
